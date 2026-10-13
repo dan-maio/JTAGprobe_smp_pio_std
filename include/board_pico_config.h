@@ -33,9 +33,10 @@
 #define PROBE_USB_CONNECTED_LED 25
 #define PROBE_PRODUCT_STRING "JTAG probe on Pico (CMSIS-DAP)"
 
-// Target UART Bridge Configuration (UART0 on GPIO 12 TX / GPIO 13 RX)
-#define PROBE_UART_TX           12
-#define PROBE_UART_RX           13
+// Target UART Bridge Configuration (UART0 on GPIO 0 TX / GPIO 1 RX,
+// Pico pins 1 and 2)
+#define PROBE_UART_TX           0
+#define PROBE_UART_RX           1
 #define PROBE_UART_INTERFACE    uart0
 #define PROBE_UART_BAUDRATE     115200
 

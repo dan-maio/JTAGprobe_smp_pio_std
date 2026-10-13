@@ -6,10 +6,10 @@
 .side_set 1
 
 ; Pin assignments:
-; - TCK: side-set pin 0 (GPIO 19), default HIGH
-; - TDI: OUT pin 0 (GPIO 18)
-; - TMS: SET pin 0 (GPIO 14)
-; - TDO: IN pin 0 (GPIO 21)
+; - TCK: side-set pin 0 (GPIO 2), default HIGH
+; - TDI: OUT pin 0 (GPIO 6)
+; - TMS: SET pin 0 (GPIO 3)
+; - TDO: IN pin 0 (GPIO 7)
 ;
 ; Autopull: DISABLED; pull threshold 8, shift_right: true (LSB first).
 ;   The TDI bytes are pulled explicitly with `pull ifempty`, so neither the

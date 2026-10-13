@@ -1,4 +1,19 @@
-# JTAGprobe_smp_pio
+# JTAGprobe_smp_pio_std
+
+`JTAGprobe_smp_pio` with a **standard 10-pin layout on the Pico's pins 1–10**
+(GP0–GP7): UART, SWD/JTAG, resets and two grounds on one row of the header,
+so one 10-way ribbon reaches everything. The firmware is otherwise the same
+(same PIO JTAG, same µOS++ SMP split, same USB ids `2e8a:000c` and product
+string, so the OpenOCD configs work unchanged). See *Pinout Mapping* below.
+
+One more difference: the `DAP_SWJ_*` macros in `include/DAP.h` are again the
+CMSIS-DAP **protocol bit positions** of the `DAP_SWJ_Pins` command
+(TCK 0, TMS 1, TDI 2, TDO 3, nTRST 5, nRESET 7), and the probe's GPIO numbers
+are `PROBE_PIN_*` in `include/DAP_config.h`. In `JTAGprobe_smp_pio` the two
+shared one set of names holding GPIO numbers (14–21), so `DAP_SWJ_Pins`
+(OpenOCD's SRST/TRST control) matched no bit and did nothing; with GPIOs 2–7
+the same mix-up would have driven the wrong pins.
+
 A CMSIS-DAP v2 JTAG and SWD debug probe firmware with an integrated USB CDC-ACM UART serial bridge for the **Raspberry Pi Pico (RP2040)**, running on the **µOS++ III SMP** kernel across both Cortex-M0+ cores with **RP2040 PIO Hardware Acceleration** for JTAG pins.
 
 It builds on `JTAGprobe_smp` (dual-core µOS++ III SMP kernel) and introduces **hardware state machine acceleration using the RP2040 Programmable I/O (PIO)** blocks:
@@ -13,7 +28,7 @@ It builds on `JTAGprobe_smp` (dual-core µOS++ III SMP kernel) and introduces **
 - **PIO JTAG:** `DAP_JTAG_Sequence`, the command OpenOCD uses in JTAG mode, runs on an RP2040 PIO state machine (`src/jtag.pio`, `src/pio_jtag.c`, `include/pio_jtag.h`), with TCK at the requested `adapter speed` and a 50 % duty cycle while core 1 keeps the PIO's FIFOs fed (when it falls behind, TCK stays low longer). All entries of a command are streamed back to back: the PIO sets TMS from each entry's header, so the CPU never waits between entries.
 - **Measured** (Raspberry Pi 4 B, `adapter speed 10000`): the JTAG work per 512-byte packet takes 292 µs instead of 581 µs with CPU bit-banging; `load_image` is 16 % faster and smp_mem_test 5 % faster (see *PIO results* below).
 - **JTAG & SWD Debugging:** Full CMSIS-DAP v2 bulk transport support for OpenOCD, pyOCD, probe-rs, and Keil MDK.
-- **Hardware USB CDC-ACM UART Bridge:** Virtual COM port (`/dev/ttyACMx` on Linux, `COMx` on Windows) bridged directly to target UART on GPIO 12/13.
+- **Hardware USB CDC-ACM UART Bridge:** Virtual COM port (`/dev/ttyACMx` on Linux, `COMx` on Windows) bridged directly to target UART on GPIO 0/1 (Pico pins 1/2).
 - **High Performance:**
   - PIO serialization and deserialization of `DAP_JTAG_Sequence` (the other DAP commands still bit-bang on the CPU, see below).
   - Zero blocking debug logging overhead on DAP transfers.
@@ -27,14 +42,14 @@ It builds on `JTAGprobe_smp` (dual-core µOS++ III SMP kernel) and introduces **
 
 ## PIO JTAG
 
-In JTAG mode OpenOCD drives the target almost only with `DAP_JTAG_Sequence` commands: up to a few hundred entries per 512-byte packet, each one 1–64 TCK cycles with a fixed TMS level, TDI bits and an optional TDO capture. `JTAGprobe_smp_pio` runs those commands on an RP2040 PIO state machine (`src/jtag.pio`, `src/pio_jtag.c`, `include/pio_jtag.h`).
+In JTAG mode OpenOCD drives the target almost only with `DAP_JTAG_Sequence` commands: up to a few hundred entries per 512-byte packet, each one 1–64 TCK cycles with a fixed TMS level, TDI bits and an optional TDO capture. `JTAGprobe_smp_pio_std` runs those commands on an RP2040 PIO state machine (`src/jtag.pio`, `src/pio_jtag.c`, `include/pio_jtag.h`).
 
 ### 1. The state machine (`src/jtag.pio`)
 
 ```pasm
 .program jtag_tdo
-.side_set 1                         ; TCK = side-set (GPIO 19), TDI = OUT (GPIO 18),
-                                    ; TMS = SET (GPIO 14),      TDO = IN (GPIO 21)
+.side_set 1                         ; TCK = side-set (GPIO 2), TDI = OUT (GPIO 6),
+                                    ; TMS = SET (GPIO 3),      TDO = IN (GPIO 7)
 .wrap_target
     pull block          side 1      ; Header, hold TCK high
     out x, 7            side 1      ; X = TCK count - 1
@@ -197,30 +212,31 @@ The load gains less than the 8× fewer packets: the bit-banging per byte is unch
 
 Connect the probe to your target board as follows:
 
-| Signal | RP2040 GPIO | Pico Header Pin | Hardware Role / Direction | Description |
-| :--- | :---: | :---: | :--- | :--- |
-| **SWCLK / TCK** | **GPIO 19** | **Pin 25** | Output (Probe → Target, PIO Side-Set 0) | SWD Clock / JTAG Test Clock |
-| **SWDIO / TMS** | **GPIO 14** | **Pin 19** | Bi-directional (SWD: SIO GPIO; JTAG: PIO SET 0) | SWD Data I/O / JTAG Test Mode Select |
-| **TDI** | **GPIO 18** | **Pin 24** | Output (Probe → Target, PIO OUT 0) | JTAG Test Data In |
-| **TDO** | **GPIO 21** | **Pin 27** | Input (Probe ← Target, PIO IN 0) | JTAG Test Data Out (Sync Bypass) |
-| **nTRST** | **GPIO 15** | **Pin 20** | Output (Probe → Target, SIO GPIO) | JTAG Test Reset (optional) |
-| **nRESET** | **GPIO 16** | **Pin 21** | Open-drain (Target Reset, SIO GPIO) | System Reset |
-| **UART_TXD** | **GPIO 12** | **Pin 16** | Output (Probe → Target, `uart0`) | Target UART RX (from Pico `uart0`) |
-| **UART_RXD** | **GPIO 13** | **Pin 17** | Input (Probe ← Target, `uart0`) | Target UART TX (to Pico `uart0`) |
-| **GND** | **GND** | **Pins 3, 8, 13, 18, 23, 28, 38** | Ground Reference | Common Ground |
+| Pico Header Pin | RP2040 GPIO | Signal | Hardware Role / Direction | Description |
+| :---: | :---: | :--- | :--- | :--- |
+| **Pin 1** | **GPIO 0** | **UART_TXD** | Output (Probe → Target, `uart0`) | to the target's UART RX |
+| **Pin 2** | **GPIO 1** | **UART_RXD** | Input (Probe ← Target, `uart0`) | from the target's UART TX |
+| **Pin 3** | GND | **GND** | Ground Reference | Common Ground |
+| **Pin 4** | **GPIO 2** | **SWCLK / TCK** | Output (Probe → Target, PIO Side-Set 0) | SWD Clock / JTAG Test Clock |
+| **Pin 5** | **GPIO 3** | **SWDIO / TMS** | Bi-directional (SWD: SIO GPIO; JTAG: PIO SET 0) | SWD Data I/O / JTAG Test Mode Select |
+| **Pin 6** | **GPIO 4** | **nTRST** | Output (Probe → Target, SIO GPIO) | JTAG Test Reset (optional) |
+| **Pin 7** | **GPIO 5** | **nRESET** | Open-drain (Target Reset, SIO GPIO) | System Reset |
+| **Pin 8** | GND | **GND** | Ground Reference | Common Ground |
+| **Pin 9** | **GPIO 6** | **TDI** | Output (Probe → Target, PIO OUT 0) | JTAG Test Data In |
+| **Pin 10** | **GPIO 7** | **TDO** | Input (Probe ← Target, PIO IN 0) | JTAG Test Data Out |
 
 ---
 
 ## USB Interfaces & Serial Port
 
-When plugged into a host PC, `JTAGprobe_smp_pio` enumerates as a composite USB device:
+When plugged into a host PC, `JTAGprobe_smp_pio_std` enumerates as a composite USB device:
 
 1. **Interface 0 (Vendor Specific Bulk):**
    - CMSIS-DAP v2 interface used by OpenOCD, pyOCD, and debuggers via `libusb`.
    - *Note:* CMSIS-DAP is **not** a serial/tty device and will not appear under `/dev/tty*`.
 2. **Interfaces 1 & 2 (CDC-ACM UART Bridge):**
    - Creates a **`/dev/ttyACMx`** on Linux (`/dev/ttyACM0` if it is the only one; or `COMx` on Windows).
-   - In system logs (`dmesg`, `/dev/serial/by-id/`), the port inherits the USB product string `JTAG probe on Pico (CMSIS-DAP)`. **It is the serial console port connected to GPIO 12 & 13.**
+   - In system logs (`dmesg`, `/dev/serial/by-id/`), the port inherits the USB product string `JTAG probe on Pico (CMSIS-DAP)`. **It is the serial console port connected to GPIO 0 & 1 (Pico pins 1 & 2).**
 
 ### Opening the UART Console
 
@@ -269,8 +285,8 @@ ninja -C build
 ```
 
 The output binaries generated in `build/` are:
-- **`build/JTAGprobe_smp_pio.uf2`** &mdash; UF2 firmware file for flashing via USB bootloader.
-- **`build/JTAGprobe_smp_pio.elf`** &mdash; ELF binary with debug symbols.
+- **`build/JTAGprobe_smp_pio_std.uf2`** &mdash; UF2 firmware file for flashing via USB bootloader.
+- **`build/JTAGprobe_smp_pio_std.elf`** &mdash; ELF binary with debug symbols.
 
 The firmware is linked `copy_to_ram`: it runs entirely from SRAM, bypassing XIP flash latency.
 
@@ -280,8 +296,8 @@ The firmware is linked `copy_to_ram`: it runs entirely from SRAM, bypassing XIP 
 
 1. **Hold the BOOTSEL button** on your Pico board.
 2. **Plug the board into your computer's USB port** while holding BOOTSEL (the device mounts as a mass-storage drive named `RPI-RP2`).
-3. **Copy `build/JTAGprobe_smp_pio.uf2`** to the drive.
-4. The Pico will automatically reboot and start running `JTAGprobe_smp_pio` with CMSIS-DAP v2, PIO hardware acceleration, and USB CDC UART on GPIO 12/13.
+3. **Copy `build/JTAGprobe_smp_pio_std.uf2`** to the drive.
+4. The Pico will automatically reboot and start running `JTAGprobe_smp_pio_std` with CMSIS-DAP v2, PIO hardware acceleration, and USB CDC UART on GPIO 0/1.
 
 ---
 

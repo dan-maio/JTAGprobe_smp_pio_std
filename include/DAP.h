@@ -139,13 +139,15 @@
 #define DAP_PORT_JTAG                   2U      // JTAG Port (TCK, TMS, TDI, TDO, nTRST) + nRESET
 
 
-// DAP SWJ Pins
-#define DAP_SWJ_SWCLK_TCK               19       // SWCLK/TCK
-#define DAP_SWJ_SWDIO_TMS               14       // SWDIO/TMS
-#define DAP_SWJ_TDI                     18       // TDI
-#define DAP_SWJ_TDO                     21       // TDO
-#define DAP_SWJ_nTRST                   15       // nTRST
-#define DAP_SWJ_nRESET                  16       // nRESET
+// DAP SWJ Pins -- bit positions in the DAP_SWJ_Pins command's 8-bit
+// select/value fields (CMSIS-DAP protocol), NOT GPIO numbers. The probe's
+// GPIOs are PROBE_PIN_* in DAP_config.h.
+#define DAP_SWJ_SWCLK_TCK               0        // SWCLK/TCK
+#define DAP_SWJ_SWDIO_TMS               1        // SWDIO/TMS
+#define DAP_SWJ_TDI                     2        // TDI
+#define DAP_SWJ_TDO                     3        // TDO
+#define DAP_SWJ_nTRST                   5        // nTRST
+#define DAP_SWJ_nRESET                  7        // nRESET
 
 
 

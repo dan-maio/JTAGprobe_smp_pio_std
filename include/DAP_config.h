@@ -314,21 +314,23 @@ of the same I/O port. The following SWDIO I/O Pin functions are provided:
 */
 
 
- // DAP SWJ Pins
-#define DAP_SWJ_SWCLK_TCK               19      // SWCLK/TCK
-#define DAP_SWJ_SWDIO_TMS               14       // SWDIO/TMS
-#define DAP_SWJ_TDI                     18       // TDI
-#define DAP_SWJ_TDO                     21       // TDO
-#define DAP_SWJ_nTRST                   15       // nTRST
-#define DAP_SWJ_nRESET                  16       // nRESET
+ // DAP SWJ Pins -- the "std" layout: a 10-pin header on Pico pins 1-10
+ // (pin 1 GP0 UART TX, 2 GP1 UART RX, 3 GND, 4 GP2 SWCLK/TCK,
+ //  5 GP3 SWDIO/TMS, 6 GP4 nTRST, 7 GP5 nRESET, 8 GND, 9 GP6 TDI, 10 GP7 TDO)
+#define PROBE_PIN_SWCLK_TCK               2        // SWCLK/TCK  (Pico pin 4)
+#define PROBE_PIN_SWDIO_TMS               3        // SWDIO/TMS  (Pico pin 5)
+#define PROBE_PIN_TDI                     6        // TDI        (Pico pin 9)
+#define PROBE_PIN_TDO                     7        // TDO        (Pico pin 10)
+#define PROBE_PIN_nTRST                   4        // nTRST      (Pico pin 6)
+#define PROBE_PIN_nRESET                  5        // nRESET     (Pico pin 7)
 
  // DAP SWJ Pin Masks for atomic Single-Cycle I/O (SIO) operations
-#define MASK_SWCLK_TCK                  (1U << DAP_SWJ_SWCLK_TCK)
-#define MASK_SWDIO_TMS                  (1U << DAP_SWJ_SWDIO_TMS)
-#define MASK_TDI                        (1U << DAP_SWJ_TDI)
-#define MASK_TDO                        (1U << DAP_SWJ_TDO)
-#define MASK_nTRST                      (1U << DAP_SWJ_nTRST)
-#define MASK_nRESET                     (1U << DAP_SWJ_nRESET)
+#define MASK_SWCLK_TCK                  (1U << PROBE_PIN_SWCLK_TCK)
+#define MASK_SWDIO_TMS                  (1U << PROBE_PIN_SWDIO_TMS)
+#define MASK_TDI                        (1U << PROBE_PIN_TDI)
+#define MASK_TDO                        (1U << PROBE_PIN_TDO)
+#define MASK_nTRST                      (1U << PROBE_PIN_nTRST)
+#define MASK_nRESET                     (1U << PROBE_PIN_nRESET)
 
 
 
@@ -369,22 +371,22 @@ __STATIC_INLINE void PORT_JTAG_SETUP (void) {
   // The last DAP_SWJ_Clock speed (DAP_DEFAULT_SWJ_CLOCK until one is set).
   pio_jtag_init(g_pio_jtag.clock_hz);
 #else
-  gpio_set_dir(DAP_SWJ_SWCLK_TCK,true);
-  gpio_put(DAP_SWJ_SWCLK_TCK, true);
+  gpio_set_dir(PROBE_PIN_SWCLK_TCK,true);
+  gpio_put(PROBE_PIN_SWCLK_TCK, true);
 
-  gpio_set_dir(DAP_SWJ_SWDIO_TMS,true);
-  gpio_put(DAP_SWJ_SWDIO_TMS, true);
+  gpio_set_dir(PROBE_PIN_SWDIO_TMS,true);
+  gpio_put(PROBE_PIN_SWDIO_TMS, true);
 
-  gpio_set_dir(DAP_SWJ_TDI,true);
-  gpio_put(DAP_SWJ_TDI, true);
+  gpio_set_dir(PROBE_PIN_TDI,true);
+  gpio_put(PROBE_PIN_TDI, true);
 
-  gpio_set_dir(DAP_SWJ_nTRST,true);
-  gpio_put(DAP_SWJ_nTRST, true);
+  gpio_set_dir(PROBE_PIN_nTRST,true);
+  gpio_put(PROBE_PIN_nTRST, true);
 
-  gpio_set_dir(DAP_SWJ_nRESET,true);
-  gpio_put(DAP_SWJ_nRESET, true);
+  gpio_set_dir(PROBE_PIN_nRESET,true);
+  gpio_put(PROBE_PIN_nRESET, true);
 
-  gpio_set_dir(DAP_SWJ_TDO,false);
+  gpio_set_dir(PROBE_PIN_TDO,false);
 #endif
 }
 
@@ -401,17 +403,17 @@ __STATIC_INLINE void PORT_SWD_SETUP (void) {
 #if (USE_PIO_JTAG != 0)
   pio_jtag_deinit();
 #endif
-  gpio_put(DAP_SWJ_SWCLK_TCK, true);
-  gpio_set_dir(DAP_SWJ_SWCLK_TCK, true);
+  gpio_put(PROBE_PIN_SWCLK_TCK, true);
+  gpio_set_dir(PROBE_PIN_SWCLK_TCK, true);
 
-  gpio_put(DAP_SWJ_SWDIO_TMS, true);
-  gpio_set_dir(DAP_SWJ_SWDIO_TMS, true);
+  gpio_put(PROBE_PIN_SWDIO_TMS, true);
+  gpio_set_dir(PROBE_PIN_SWDIO_TMS, true);
 
-  gpio_put(DAP_SWJ_nRESET, true);
-  gpio_set_dir(DAP_SWJ_nRESET, true);
+  gpio_put(PROBE_PIN_nRESET, true);
+  gpio_set_dir(PROBE_PIN_nRESET, true);
 
-  set_pin_high_z(DAP_SWJ_TDI);
-  set_pin_high_z(DAP_SWJ_nTRST);
+  set_pin_high_z(PROBE_PIN_TDI);
+  set_pin_high_z(PROBE_PIN_nTRST);
 
 
 
@@ -426,12 +428,12 @@ __STATIC_INLINE void PORT_OFF (void) {
 #if (USE_PIO_JTAG != 0)
   pio_jtag_deinit();
 #endif
-    set_pin_high_z(DAP_SWJ_SWCLK_TCK);
-    set_pin_high_z(DAP_SWJ_SWDIO_TMS);
-    set_pin_high_z(DAP_SWJ_TDI);
-    set_pin_high_z(DAP_SWJ_TDO);
-    set_pin_high_z(DAP_SWJ_nTRST);
-    set_pin_high_z(DAP_SWJ_nRESET);
+    set_pin_high_z(PROBE_PIN_SWCLK_TCK);
+    set_pin_high_z(PROBE_PIN_SWDIO_TMS);
+    set_pin_high_z(PROBE_PIN_TDI);
+    set_pin_high_z(PROBE_PIN_TDO);
+    set_pin_high_z(PROBE_PIN_nTRST);
+    set_pin_high_z(PROBE_PIN_nRESET);
 
 
 }
@@ -456,7 +458,7 @@ __STATIC_FORCEINLINE void     PIN_TCK_TDI_TO_SIO (void) {
 \return Current status of the SWCLK/TCK DAP hardware I/O pin.
 */
 __STATIC_FORCEINLINE uint32_t PIN_SWCLK_TCK_IN  (void) {
-    return (gpio_get_all() >> DAP_SWJ_SWCLK_TCK) & 1U;
+    return (gpio_get_all() >> PROBE_PIN_SWCLK_TCK) & 1U;
 }
 
 /** SWCLK/TCK I/O pin: Set Output to High.
@@ -480,7 +482,7 @@ __STATIC_FORCEINLINE void     PIN_SWCLK_TCK_CLR (void) {
 \return Current status of the SWDIO/TMS DAP hardware I/O pin.
 */
 __STATIC_FORCEINLINE uint32_t PIN_SWDIO_TMS_IN  (void) {
-    return (gpio_get_all() >> DAP_SWJ_SWDIO_TMS) & 1U;
+    return (gpio_get_all() >> PROBE_PIN_SWDIO_TMS) & 1U;
 }
 
 /** SWDIO/TMS I/O pin: Set Output to High.
@@ -508,7 +510,7 @@ __STATIC_FORCEINLINE void     PIN_SWDIO_TMS_CLR (void) {
 \return Current status of the SWDIO DAP hardware I/O pin.
 */
 __STATIC_FORCEINLINE uint32_t PIN_SWDIO_IN      (void) {
-    return (gpio_get_all() >> DAP_SWJ_SWDIO_TMS) & 1U;
+    return (gpio_get_all() >> PROBE_PIN_SWDIO_TMS) & 1U;
 }
 
 /** SWDIO I/O pin: Set Output (used in SWD mode only).
@@ -547,7 +549,7 @@ __STATIC_FORCEINLINE void     PIN_SWDIO_OUT_DISABLE (void) {
 \return Current status of the TDI DAP hardware I/O pin.
 */
 __STATIC_FORCEINLINE uint32_t PIN_TDI_IN  (void) {
-    return (gpio_get_all() >> DAP_SWJ_TDI) & 1U;
+    return (gpio_get_all() >> PROBE_PIN_TDI) & 1U;
 }
 
 /** TDI I/O pin: Set Output.
@@ -568,7 +570,7 @@ __STATIC_FORCEINLINE void     PIN_TDI_OUT (uint32_t bit) {
 \return Current status of the TDO DAP hardware I/O pin.
 */
 __STATIC_FORCEINLINE uint32_t PIN_TDO_IN  (void) {
-    return (gpio_get_all() >> DAP_SWJ_TDO) & 1U;
+    return (gpio_get_all() >> PROBE_PIN_TDO) & 1U;
 }
 
 
@@ -596,7 +598,7 @@ __STATIC_FORCEINLINE void     PIN_nTRST_OUT  (uint32_t bit) {
 \return Current status of the nRESET DAP hardware I/O pin.
 */
 __STATIC_FORCEINLINE uint32_t PIN_nRESET_IN  (void) {
-  return (gpio_get_all() >> DAP_SWJ_nRESET) & 1U;
+  return (gpio_get_all() >> PROBE_PIN_nRESET) & 1U;
 }
 
 /** nRESET I/O pin: Set Output.
@@ -701,12 +703,12 @@ __STATIC_INLINE void DAP_SETUP (void) {
 
  /* Enable clock and init GPIO outputs */
   
-  gpio_init(DAP_SWJ_SWCLK_TCK);
-  gpio_init(DAP_SWJ_SWDIO_TMS);
-  gpio_init(DAP_SWJ_TDI);
-  gpio_init(DAP_SWJ_TDO);
-  gpio_init(DAP_SWJ_nTRST);
-  gpio_init(DAP_SWJ_nRESET);
+  gpio_init(PROBE_PIN_SWCLK_TCK);
+  gpio_init(PROBE_PIN_SWDIO_TMS);
+  gpio_init(PROBE_PIN_TDI);
+  gpio_init(PROBE_PIN_TDO);
+  gpio_init(PROBE_PIN_nTRST);
+  gpio_init(PROBE_PIN_nRESET);
 
 
 
@@ -721,19 +723,19 @@ __STATIC_INLINE void DAP_SETUP (void) {
 
 
 
-  gpio_set_dir(DAP_SWJ_SWCLK_TCK,true);
-  gpio_put(DAP_SWJ_SWCLK_TCK, true);
+  gpio_set_dir(PROBE_PIN_SWCLK_TCK,true);
+  gpio_put(PROBE_PIN_SWCLK_TCK, true);
 
-  gpio_set_dir(DAP_SWJ_SWDIO_TMS,true);
-  gpio_put(DAP_SWJ_SWDIO_TMS, true);
+  gpio_set_dir(PROBE_PIN_SWDIO_TMS,true);
+  gpio_put(PROBE_PIN_SWDIO_TMS, true);
 
-  gpio_set_dir(DAP_SWJ_TDI,true);
-  gpio_put(DAP_SWJ_TDI, true);
+  gpio_set_dir(PROBE_PIN_TDI,true);
+  gpio_put(PROBE_PIN_TDI, true);
 
-  gpio_set_dir(DAP_SWJ_TDO,false);
+  gpio_set_dir(PROBE_PIN_TDO,false);
 
-  gpio_set_dir(DAP_SWJ_nRESET,false);
-  gpio_put(DAP_SWJ_nRESET,true);
+  gpio_set_dir(PROBE_PIN_nRESET,false);
+  gpio_put(PROBE_PIN_nRESET,true);
 
 
 }

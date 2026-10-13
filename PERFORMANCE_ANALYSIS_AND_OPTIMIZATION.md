@@ -386,8 +386,8 @@ In JTAG mode OpenOCD drives the target almost only with `DAP_JTAG_Sequence` comm
 
 ```pasm
 .program jtag_tdo
-.side_set 1                         ; TCK = side-set (GPIO 19), TDI = OUT (GPIO 18),
-                                    ; TMS = SET (GPIO 14),      TDO = IN (GPIO 21)
+.side_set 1                         ; TCK = side-set (GPIO 2), TDI = OUT (GPIO 6),
+                                    ; TMS = SET (GPIO 3),      TDO = IN (GPIO 7)
 .wrap_target
     pull block          side 1      ; Header, hold TCK high
     out x, 7            side 1      ; X = TCK count - 1
@@ -488,6 +488,12 @@ The probe enumerates as a USB Composite Device with three distinct interfaces:
 - **In JTAGprobe_smp** the three tasks are µOS++ threads with the same ordering (`os_thread_priority_high`, `_above_normal`, `_normal`); `UART` and `TUD` are pinned to core 0, `DAP` to core 1 (section 8).
 
 ### 7.3 Full Pinout Reference
+
+> **JTAGprobe_smp_pio_std** moves every signal to the Pico's pins 1–10
+> (GP0 UART TX, GP1 UART RX, GND, GP2 SWCLK/TCK, GP3 SWDIO/TMS, GP4 nTRST,
+> GP5 nRESET, GND, GP6 TDI, GP7 TDO); see its README. The table below, and the
+> UART pins in § 7.1–7.2, are those of JTAGprobe, JTAGprobe_smp and
+> JTAGprobe_smp_pio, on which the measurements in this document were made.
 
 | Signal | RP2040 GPIO | Pico Header Pin | Role / Direction | Function |
 | :--- | :---: | :---: | :--- | :--- |

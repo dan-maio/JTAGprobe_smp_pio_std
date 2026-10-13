@@ -17,12 +17,12 @@ pio_jtag_t g_pio_jtag = {
     .offset = 0,
     .enabled = false,
     .clock_hz = DAP_DEFAULT_SWJ_CLOCK,
-    .pin_tck = DAP_SWJ_SWCLK_TCK,
-    .pin_tdi = DAP_SWJ_TDI,
-    .pin_tdo = DAP_SWJ_TDO,
-    .pin_tms = DAP_SWJ_SWDIO_TMS,
-    .pin_trst = DAP_SWJ_nTRST,
-    .pin_reset = DAP_SWJ_nRESET
+    .pin_tck = PROBE_PIN_SWCLK_TCK,
+    .pin_tdi = PROBE_PIN_TDI,
+    .pin_tdo = PROBE_PIN_TDO,
+    .pin_tms = PROBE_PIN_SWDIO_TMS,
+    .pin_trst = PROBE_PIN_nTRST,
+    .pin_reset = PROBE_PIN_nRESET
 };
 
 bool pio_jtag_init(uint32_t clock_hz) {
