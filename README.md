@@ -8,8 +8,9 @@ string, so the OpenOCD configs work unchanged). See *Pinout Mapping* below.
 
 The pins are set in `include/DAP_config.h` (`PROBE_PIN_*`, used by the SIO
 helpers and the PIO) and in `include/DAP.h` (`DAP_SWJ_*`, the same GPIO numbers,
-as in `JTAGprobe_smp_pio`); the UART pins are in `include/board_pico_config.h`.
-Verified: `smp-test1` on a Raspberry Pi Pico target over SWD at 15 MHz.
+as in `JTAGprobe_smp_pio`); the UART pins are in `include/board_pico_config.h` (`uart1`, since GP4/GP5
+are UART1's pins). Verified: `smp-test1` on a Raspberry Pi Pico target over
+SWD at 15 MHz.
 
 A CMSIS-DAP v2 JTAG and SWD debug probe firmware with an integrated USB CDC-ACM UART serial bridge for the **Raspberry Pi Pico (RP2040)**, running on the **µOS++ III SMP** kernel across both Cortex-M0+ cores with **RP2040 PIO Hardware Acceleration** for JTAG pins.
 
@@ -25,7 +26,7 @@ It builds on `JTAGprobe_smp` (dual-core µOS++ III SMP kernel) and introduces **
 - **PIO JTAG:** `DAP_JTAG_Sequence`, the command OpenOCD uses in JTAG mode, runs on an RP2040 PIO state machine (`src/jtag.pio`, `src/pio_jtag.c`, `include/pio_jtag.h`), with TCK at the requested `adapter speed` and a 50 % duty cycle while core 1 keeps the PIO's FIFOs fed (when it falls behind, TCK stays low longer). All entries of a command are streamed back to back: the PIO sets TMS from each entry's header, so the CPU never waits between entries.
 - **Measured** (Raspberry Pi 4 B, `adapter speed 10000`): the JTAG work per 512-byte packet takes 292 µs instead of 581 µs with CPU bit-banging; `load_image` is 16 % faster and smp_mem_test 5 % faster (see *PIO results* below).
 - **JTAG & SWD Debugging:** Full CMSIS-DAP v2 bulk transport support for OpenOCD, pyOCD, probe-rs, and Keil MDK.
-- **Hardware USB CDC-ACM UART Bridge:** Virtual COM port (`/dev/ttyACMx` on Linux, `COMx` on Windows) bridged directly to target UART on GPIO 0/1 (Pico pins 1/2).
+- **Hardware USB CDC-ACM UART Bridge:** Virtual COM port (`/dev/ttyACMx` on Linux, `COMx` on Windows) bridged directly to target UART on GPIO 4/5 (Pico pins 6/7, `uart1`).
 - **High Performance:**
   - PIO serialization and deserialization of `DAP_JTAG_Sequence` (the other DAP commands still bit-bang on the CPU, see below).
   - Zero blocking debug logging overhead on DAP transfers.
@@ -211,13 +212,13 @@ Connect the probe to your target board as follows:
 
 | Pico Header Pin | RP2040 GPIO | Signal | Hardware Role / Direction | Description |
 | :---: | :---: | :--- | :--- | :--- |
-| **Pin 1** | **GPIO 0** | **UART_TXD** | Output (Probe → Target, `uart0`) | to the target's UART RX |
-| **Pin 2** | **GPIO 1** | **UART_RXD** | Input (Probe ← Target, `uart0`) | from the target's UART TX |
+| **Pin 1** | **GPIO 0** | **nTRST** | Output (Probe → Target, SIO GPIO) | JTAG Test Reset (optional) |
+| **Pin 2** | **GPIO 1** | **nRESET** | Open-drain (Target Reset, SIO GPIO) | System Reset |
 | **Pin 3** | GND | **GND** | Ground Reference | Common Ground |
 | **Pin 4** | **GPIO 2** | **SWCLK / TCK** | Output (Probe → Target, PIO Side-Set 0) | SWD Clock / JTAG Test Clock |
 | **Pin 5** | **GPIO 3** | **SWDIO / TMS** | Bi-directional (SWD: SIO GPIO; JTAG: PIO SET 0) | SWD Data I/O / JTAG Test Mode Select |
-| **Pin 6** | **GPIO 4** | **nTRST** | Output (Probe → Target, SIO GPIO) | JTAG Test Reset (optional) |
-| **Pin 7** | **GPIO 5** | **nRESET** | Open-drain (Target Reset, SIO GPIO) | System Reset |
+| **Pin 6** | **GPIO 4** | **UART_TXD** | Output (Probe → Target, `uart1`) | to the target's UART RX |
+| **Pin 7** | **GPIO 5** | **UART_RXD** | Input (Probe ← Target, `uart1`) | from the target's UART TX |
 | **Pin 8** | GND | **GND** | Ground Reference | Common Ground |
 | **Pin 9** | **GPIO 6** | **TDI** | Output (Probe → Target, PIO OUT 0) | JTAG Test Data In |
 | **Pin 10** | **GPIO 7** | **TDO** | Input (Probe ← Target, PIO IN 0) | JTAG Test Data Out |
@@ -233,7 +234,7 @@ When plugged into a host PC, `JTAGprobe_smp_pio_std` enumerates as a composite U
    - *Note:* CMSIS-DAP is **not** a serial/tty device and will not appear under `/dev/tty*`.
 2. **Interfaces 1 & 2 (CDC-ACM UART Bridge):**
    - Creates a **`/dev/ttyACMx`** on Linux (`/dev/ttyACM0` if it is the only one; or `COMx` on Windows).
-   - In system logs (`dmesg`, `/dev/serial/by-id/`), the port inherits the USB product string `JTAG probe on Pico (CMSIS-DAP)`. **It is the serial console port connected to GPIO 0 & 1 (Pico pins 1 & 2).**
+   - In system logs (`dmesg`, `/dev/serial/by-id/`), the port inherits the USB product string `JTAG probe on Pico (CMSIS-DAP)`. **It is the serial console port connected to GPIO 4 & 5 (Pico pins 6 & 7).**
 
 ### Opening the UART Console
 
@@ -294,7 +295,7 @@ The firmware is linked `copy_to_ram`: it runs entirely from SRAM, bypassing XIP 
 1. **Hold the BOOTSEL button** on your Pico board.
 2. **Plug the board into your computer's USB port** while holding BOOTSEL (the device mounts as a mass-storage drive named `RPI-RP2`).
 3. **Copy `build/JTAGprobe_smp_pio_std.uf2`** to the drive.
-4. The Pico will automatically reboot and start running `JTAGprobe_smp_pio_std` with CMSIS-DAP v2, PIO hardware acceleration, and USB CDC UART on GPIO 0/1.
+4. The Pico will automatically reboot and start running `JTAGprobe_smp_pio_std` with CMSIS-DAP v2, PIO hardware acceleration, and USB CDC UART on GPIO 4/5.
 
 ---
 

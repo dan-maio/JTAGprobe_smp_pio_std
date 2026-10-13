@@ -144,8 +144,8 @@
 #define DAP_SWJ_SWDIO_TMS               3        // SWDIO/TMS
 #define DAP_SWJ_TDI                     6        // TDI
 #define DAP_SWJ_TDO                     7        // TDO
-#define DAP_SWJ_nTRST                   4        // nTRST
-#define DAP_SWJ_nRESET                  5        // nRESET
+#define DAP_SWJ_nTRST                   0        // nTRST
+#define DAP_SWJ_nRESET                  1        // nRESET
 
 
 

@@ -315,14 +315,14 @@ of the same I/O port. The following SWDIO I/O Pin functions are provided:
 
 
  // DAP SWJ Pins -- the "std" layout: a 10-pin header on Pico pins 1-10
- // (pin 1 GP0 UART TX, 2 GP1 UART RX, 3 GND, 4 GP2 SWCLK/TCK,
- //  5 GP3 SWDIO/TMS, 6 GP4 nTRST, 7 GP5 nRESET, 8 GND, 9 GP6 TDI, 10 GP7 TDO)
+ // (pin 1 GP0 nTRST, 2 GP1 nRESET, 3 GND, 4 GP2 SWCLK/TCK, 5 GP3 SWDIO/TMS,
+ //  6 GP4 UART TX, 7 GP5 UART RX, 8 GND, 9 GP6 TDI, 10 GP7 TDO)
 #define PROBE_PIN_SWCLK_TCK               2        // SWCLK/TCK  (Pico pin 4)
 #define PROBE_PIN_SWDIO_TMS               3        // SWDIO/TMS  (Pico pin 5)
 #define PROBE_PIN_TDI                     6        // TDI        (Pico pin 9)
 #define PROBE_PIN_TDO                     7        // TDO        (Pico pin 10)
-#define PROBE_PIN_nTRST                   4        // nTRST      (Pico pin 6)
-#define PROBE_PIN_nRESET                  5        // nRESET     (Pico pin 7)
+#define PROBE_PIN_nTRST                   0        // nTRST      (Pico pin 1)
+#define PROBE_PIN_nRESET                  1        // nRESET     (Pico pin 2)
 
  // DAP SWJ Pin Masks for atomic Single-Cycle I/O (SIO) operations
 #define MASK_SWCLK_TCK                  (1U << PROBE_PIN_SWCLK_TCK)

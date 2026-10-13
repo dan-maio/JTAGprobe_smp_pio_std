@@ -490,8 +490,8 @@ The probe enumerates as a USB Composite Device with three distinct interfaces:
 ### 7.3 Full Pinout Reference
 
 > **JTAGprobe_smp_pio_std** moves every signal to the Pico's pins 1–10
-> (GP0 UART TX, GP1 UART RX, GND, GP2 SWCLK/TCK, GP3 SWDIO/TMS, GP4 nTRST,
-> GP5 nRESET, GND, GP6 TDI, GP7 TDO); see its README. The table below, and the
+> (GP0 nTRST, GP1 nRESET, GND, GP2 SWCLK/TCK, GP3 SWDIO/TMS, GP4 UART1 TX,
+> GP5 UART1 RX, GND, GP6 TDI, GP7 TDO); see its README. The table below, and the
 > UART pins in § 7.1–7.2, are those of JTAGprobe, JTAGprobe_smp and
 > JTAGprobe_smp_pio, on which the measurements in this document were made.
 
