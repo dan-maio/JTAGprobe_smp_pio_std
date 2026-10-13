@@ -6,13 +6,10 @@ so one 10-way ribbon reaches everything. The firmware is otherwise the same
 (same PIO JTAG, same µOS++ SMP split, same USB ids `2e8a:000c` and product
 string, so the OpenOCD configs work unchanged). See *Pinout Mapping* below.
 
-One more difference: the `DAP_SWJ_*` macros in `include/DAP.h` are again the
-CMSIS-DAP **protocol bit positions** of the `DAP_SWJ_Pins` command
-(TCK 0, TMS 1, TDI 2, TDO 3, nTRST 5, nRESET 7), and the probe's GPIO numbers
-are `PROBE_PIN_*` in `include/DAP_config.h`. In `JTAGprobe_smp_pio` the two
-shared one set of names holding GPIO numbers (14–21), so `DAP_SWJ_Pins`
-(OpenOCD's SRST/TRST control) matched no bit and did nothing; with GPIOs 2–7
-the same mix-up would have driven the wrong pins.
+The pins are set in `include/DAP_config.h` (`PROBE_PIN_*`, used by the SIO
+helpers and the PIO) and in `include/DAP.h` (`DAP_SWJ_*`, the same GPIO numbers,
+as in `JTAGprobe_smp_pio`); the UART pins are in `include/board_pico_config.h`.
+Verified: `smp-test1` on a Raspberry Pi Pico target over SWD at 15 MHz.
 
 A CMSIS-DAP v2 JTAG and SWD debug probe firmware with an integrated USB CDC-ACM UART serial bridge for the **Raspberry Pi Pico (RP2040)**, running on the **µOS++ III SMP** kernel across both Cortex-M0+ cores with **RP2040 PIO Hardware Acceleration** for JTAG pins.
 
