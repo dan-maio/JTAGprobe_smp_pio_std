@@ -32,6 +32,7 @@
 #include "probe.h"
 #include "tusb_edpt_handler.h"
 #include "tusb_config.h"
+#include "led.h"
 
 
 
@@ -1708,6 +1709,7 @@ uint32_t DAP_ProcessCommand(const uint8_t *request, uint8_t *response) {
       num = DAP_SWJ_Clock(request, response);
       break;
     case ID_DAP_SWJ_Sequence:
+      led_tck_activity();
       num = DAP_SWJ_Sequence(request, response);
       break;
 
@@ -1715,16 +1717,19 @@ uint32_t DAP_ProcessCommand(const uint8_t *request, uint8_t *response) {
       num = DAP_SWD_Configure(request, response);
       break;
     case ID_DAP_SWD_Sequence:
+      led_tck_activity();
       num = DAP_SWD_Sequence(request, response);
       break;
 
     case ID_DAP_JTAG_Sequence:
+      led_tck_activity();
       num = DAP_JTAG_Sequence(request, response);
       break;
     case ID_DAP_JTAG_Configure:
       num = DAP_JTAG_Configure(request, response);
       break;
     case ID_DAP_JTAG_IDCODE:
+      led_tck_activity();
       num = DAP_JTAG_IDCode(request, response);
       break;
 
@@ -1732,13 +1737,16 @@ uint32_t DAP_ProcessCommand(const uint8_t *request, uint8_t *response) {
       num = DAP_TransferConfigure(request, response);
       break;
     case ID_DAP_Transfer:
+      led_tck_activity();
       num = DAP_Transfer(request, response);
       break;
     case ID_DAP_TransferBlock:
+      led_tck_activity();
       num = DAP_TransferBlock(request, response);
       break;
 
     case ID_DAP_WriteABORT:
+      led_tck_activity();
       num = DAP_WriteAbort(request, response);
       break;
 

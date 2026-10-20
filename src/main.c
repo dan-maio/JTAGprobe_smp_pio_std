@@ -41,6 +41,7 @@
 #include "DAP_config.h"
 #include "cdc_uart.h"
 #include "probe_os.h"
+#include "led.h"
 
 
 
@@ -111,12 +112,6 @@ void *usb_thread(void *ptr)
         // Hand the DAP thread's responses to the IN endpoint, re-arm OUT.
         dap_edpt_service();
 
-  #ifdef PROBE_USB_CONNECTED_LED
-        if (!gpio_get(PROBE_USB_CONNECTED_LED) && tud_ready())
-            gpio_put(PROBE_USB_CONNECTED_LED, 0);
-        else
-            gpio_put(PROBE_USB_CONNECTED_LED, 0);
-#endif
         // While DAP packets are flowing, keep polling instead of sleeping:
         // the next OUT packet is then picked up without a semaphore wake-up
         // and a context switch. "uart" still preempts this thread.
@@ -184,12 +179,11 @@ int os_main(int argc, char *argv[]) {
     (void) argc;
     (void) argv;
 
-    gpio_put(PROBE_USB_CONNECTED_LED, 0);
-
-
     probe_info("Welcome to jtagprobe!\n");
     DAP_Setup();
     board_init();
+    // Status LED: on, blinking while TCK/SWCLK is in use (led.c).
+    led_init();
     usb_serial_init();
 
     os_mutex_create(&usb_mutex, "usb", NULL);

@@ -30,6 +30,7 @@ add_executable(JTAGprobe_smp_pio_std
         src/tusb_edpt_handler.c
         src/cdc_uart.c
         src/pio_jtag.c
+        src/led.c
 )
 
 pico_generate_pio_header(JTAGprobe_smp_pio_std ${CMAKE_CURRENT_LIST_DIR}/src/jtag.pio)
