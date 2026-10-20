@@ -34,6 +34,7 @@ It builds on `JTAGprobe_smp` (dual-core µOS++ III SMP kernel) and introduces **
   - Multi-packet ring buffer (4 slots) with 512-byte DAP packet size.
 - **Dual-core (SMP):** The DAP thread runs on core 1, overlapping JTAG hardware transfers with USB and UART bridge activity on core 0.
 - **Dynamic Clock & Baud Rates:** Automatic PIO clock divider adjustment tracking OpenOCD `adapter speed` commands, and dynamic UART line coding.
+- **Status LED:** the Pico's on-board LED (GPIO 25) is on all the time and blinks rapidly (10 Hz) while TCK/SWCLK is in use (`src/led.c`, see *Pinout Mapping*).
 - **Supported Hardware:** Raspberry Pi Pico (RP2040).
 
 ---
@@ -142,7 +143,7 @@ These images are a few hundred bytes larger than the earlier ones (75,208 agains
 
 | Thread | Priority | Core | Job |
 | :--- | :--- | :---: | :--- |
-| `UART` | high | 0 | CDC ↔ `uart0` bridge (must preempt USB, or characters are lost) |
+| `UART` | high | 0 | CDC ↔ `uart1` bridge (must preempt USB, or characters are lost) |
 | `TUD` | above normal | 0 | `tud_task()`, then services the DAP endpoints |
 | `DAP` | normal | 1 | `DAP_ExecuteCommand()`: the JTAG/SWD bit-banging |
 | `main` | — | 0 | `os_main()`: probe init, creates the threads, starts core 1 |
@@ -222,6 +223,10 @@ Connect the probe to your target board as follows:
 | **Pin 8** | GND | **GND** | Ground Reference | Common Ground |
 | **Pin 9** | **GPIO 6** | **TDI** | Output (Probe → Target, PIO OUT 0) | JTAG Test Data In |
 | **Pin 10** | **GPIO 7** | **TDO** | Input (Probe ← Target, PIO IN 0) | JTAG Test Data Out |
+
+**Status LED** (the Pico's on-board LED, GPIO 25): on all the time, blinking
+rapidly (10 Hz) while TCK/SWCLK is in use, i.e. for 100 ms after every DAP
+command that clocks the target (`src/led.c`).
 
 ---
 
