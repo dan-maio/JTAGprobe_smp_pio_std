@@ -768,6 +768,8 @@ in use**.
 - An OpenOCD session that polls the target keeps clocking TCK, so the LED
   keeps blinking while OpenOCD is connected and polling; it goes back to
   steady on once the host stops issuing clocking commands.
+- **Verified on hardware:** steady on when idle, blinking while the host
+  clocks TCK/SWCLK.
 
 ---
 

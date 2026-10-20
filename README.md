@@ -226,7 +226,7 @@ Connect the probe to your target board as follows:
 
 **Status LED** (the Pico's on-board LED, GPIO 25): on all the time, blinking
 rapidly (10 Hz) while TCK/SWCLK is in use, i.e. for 100 ms after every DAP
-command that clocks the target (`src/led.c`).
+command that clocks the target (`src/led.c`). Verified on hardware.
 
 ---
 
