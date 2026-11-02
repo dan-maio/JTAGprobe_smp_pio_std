@@ -1,18 +1,24 @@
-# JTAGprobe_smp_pio_std
+# JTAGprobe_smp_pio_std_weact
 
-`JTAGprobe_smp_pio` with a **standard 10-pin layout on the Pico's pins 1–10**
-(GP0–GP7): UART, SWD/JTAG, resets and two grounds on one row of the header,
-so one 10-way ribbon reaches everything. The firmware is otherwise the same
-(same PIO JTAG, same µOS++ SMP split, same USB ids `2e8a:000c` and product
-string, so the OpenOCD configs work unchanged). See *Pinout Mapping* below.
+`JTAGprobe_smp_pio_std` built for the **WeAct Studio RP2040 Core Board V1.0
+(16 MB QSPI flash, LED on GP25)**. It keeps the **standard 10-pin layout on
+header pins 1–10** (GP0–GP7 of the Pico-compatible left header): UART,
+SWD/JTAG, resets and two grounds on one row, so the same 10-way ribbon used
+with a Pico reaches everything. The firmware is otherwise the same (same PIO
+JTAG, same µOS++ SMP split, same USB ids `2e8a:000c` and product string, so
+the OpenOCD configs work unchanged). See *Pinout Mapping* below.
+
+Board-specific configuration, build details and the exact Pico-vs-WeAct
+differences are in **`WEACT_CONFIGURATION_BUILD_AND_DIFFERENCES.md`**.
 
 The pins are set in `include/DAP_config.h` (`PROBE_PIN_*`, used by the SIO
 helpers and the PIO) and in `include/DAP.h` (`DAP_SWJ_*`, the same GPIO numbers,
 as in `JTAGprobe_smp_pio`); the UART pins are in `include/board_pico_config.h` (`uart1`, since GP4/GP5
 are UART1's pins). Verified: `smp-test1` on a Raspberry Pi Pico target over
-SWD at 15 MHz.
+SWD at 15 MHz, and the WeAct build over JTAG on the same target and cable as
+the Pico build.
 
-A CMSIS-DAP v2 JTAG and SWD debug probe firmware with an integrated USB CDC-ACM UART serial bridge for the **Raspberry Pi Pico (RP2040)**, running on the **µOS++ III SMP** kernel across both Cortex-M0+ cores with **RP2040 PIO Hardware Acceleration** for JTAG pins.
+A CMSIS-DAP v2 JTAG and SWD debug probe firmware with an integrated USB CDC-ACM UART serial bridge for the **RP2040** (Raspberry Pi Pico and WeAct RP2040 Core Board), running on the **µOS++ III SMP** kernel across both Cortex-M0+ cores with **RP2040 PIO Hardware Acceleration** for JTAG pins.
 
 It builds on `JTAGprobe_smp` (dual-core µOS++ III SMP kernel) and introduces **hardware state machine acceleration using the RP2040 Programmable I/O (PIO)** blocks:
 - **Core 0**: Handles USB communication (TinyUSB) and the CDC-ACM UART bridge.
@@ -26,7 +32,7 @@ It builds on `JTAGprobe_smp` (dual-core µOS++ III SMP kernel) and introduces **
 - **PIO JTAG:** `DAP_JTAG_Sequence`, the command OpenOCD uses in JTAG mode, runs on an RP2040 PIO state machine (`src/jtag.pio`, `src/pio_jtag.c`, `include/pio_jtag.h`), with TCK at the requested `adapter speed` and a 50 % duty cycle while core 1 keeps the PIO's FIFOs fed (when it falls behind, TCK stays low longer). All entries of a command are streamed back to back: the PIO sets TMS from each entry's header, so the CPU never waits between entries.
 - **Measured** (Raspberry Pi 4 B, `adapter speed 10000`): the JTAG work per 512-byte packet takes 292 µs instead of 581 µs with CPU bit-banging; `load_image` is 16 % faster and smp_mem_test 5 % faster (see *PIO results* below).
 - **JTAG & SWD Debugging:** Full CMSIS-DAP v2 bulk transport support for OpenOCD, pyOCD, probe-rs, and Keil MDK.
-- **Hardware USB CDC-ACM UART Bridge:** Virtual COM port (`/dev/ttyACMx` on Linux, `COMx` on Windows) bridged directly to target UART on GPIO 4/5 (Pico pins 6/7, `uart1`).
+- **Hardware USB CDC-ACM UART Bridge:** Virtual COM port (`/dev/ttyACMx` on Linux, `COMx` on Windows) bridged directly to target UART on GPIO 4/5 (header pins 6/7, `uart1`).
 - **High Performance:**
   - PIO serialization and deserialization of `DAP_JTAG_Sequence` (the other DAP commands still bit-bang on the CPU, see below).
   - Zero blocking debug logging overhead on DAP transfers.
@@ -34,8 +40,8 @@ It builds on `JTAGprobe_smp` (dual-core µOS++ III SMP kernel) and introduces **
   - Multi-packet ring buffer (4 slots) with 512-byte DAP packet size.
 - **Dual-core (SMP):** The DAP thread runs on core 1, overlapping JTAG hardware transfers with USB and UART bridge activity on core 0.
 - **Dynamic Clock & Baud Rates:** Automatic PIO clock divider adjustment tracking OpenOCD `adapter speed` commands, and dynamic UART line coding.
-- **Status LED:** the Pico's on-board LED (GPIO 25) is on all the time and blinks rapidly (10 Hz) while TCK/SWCLK is in use (`src/led.c`, see *Pinout Mapping*).
-- **Supported Hardware:** Raspberry Pi Pico (RP2040).
+- **Status LED:** the on-board LED (GPIO 25 on both boards) is on all the time and blinks rapidly (10 Hz) while TCK/SWCLK is in use (`src/led.c`, see *Pinout Mapping*).
+- **Supported Hardware:** Raspberry Pi Pico (RP2040); WeAct Studio RP2040 Core Board (this tree is configured for the 16 MB version).
 
 ---
 
@@ -211,7 +217,7 @@ The load gains less than the 8× fewer packets: the bit-banging per byte is unch
 
 Connect the probe to your target board as follows:
 
-| Pico Header Pin | RP2040 GPIO | Signal | Hardware Role / Direction | Description |
+| Header Pin | RP2040 GPIO | Signal | Hardware Role / Direction | Description |
 | :---: | :---: | :--- | :--- | :--- |
 | **Pin 1** | **GPIO 0** | **nTRST** | Output (Probe → Target, SIO GPIO) | JTAG Test Reset (optional) |
 | **Pin 2** | **GPIO 1** | **nRESET** | Open-drain (Target Reset, SIO GPIO) | System Reset |
@@ -224,7 +230,7 @@ Connect the probe to your target board as follows:
 | **Pin 9** | **GPIO 6** | **TDI** | Output (Probe → Target, PIO OUT 0) | JTAG Test Data In |
 | **Pin 10** | **GPIO 7** | **TDO** | Input (Probe ← Target, PIO IN 0) | JTAG Test Data Out |
 
-**Status LED** (the Pico's on-board LED, GPIO 25): on all the time, blinking
+**Status LED** (the on-board LED, GPIO 25 on both boards): on all the time, blinking
 rapidly (10 Hz) while TCK/SWCLK is in use, i.e. for 100 ms after every DAP
 command that clocks the target (`src/led.c`). Verified on hardware.
 
@@ -232,14 +238,14 @@ command that clocks the target (`src/led.c`). Verified on hardware.
 
 ## USB Interfaces & Serial Port
 
-When plugged into a host PC, `JTAGprobe_smp_pio_std` enumerates as a composite USB device:
+When plugged into a host PC, `JTAGprobe_smp_pio_std_weact` enumerates as a composite USB device:
 
 1. **Interface 0 (Vendor Specific Bulk):**
    - CMSIS-DAP v2 interface used by OpenOCD, pyOCD, and debuggers via `libusb`.
    - *Note:* CMSIS-DAP is **not** a serial/tty device and will not appear under `/dev/tty*`.
 2. **Interfaces 1 & 2 (CDC-ACM UART Bridge):**
    - Creates a **`/dev/ttyACMx`** on Linux (`/dev/ttyACM0` if it is the only one; or `COMx` on Windows).
-   - In system logs (`dmesg`, `/dev/serial/by-id/`), the port inherits the USB product string `JTAG probe on Pico (CMSIS-DAP)`. **It is the serial console port connected to GPIO 4 & 5 (Pico pins 6 & 7).**
+   - In system logs (`dmesg`, `/dev/serial/by-id/`), the port inherits the USB product string `JTAG probe on Pico (CMSIS-DAP)` (shared with the Pico build; the name is cosmetic). **It is the serial console port connected to GPIO 4 & 5 (header pins 6 & 7).**
 
 ### Opening the UART Console
 
@@ -278,18 +284,24 @@ minicom -b 115200 -o -D /dev/ttyACM0
 
 The µOS++ kernel and its RP2040 port are already in `micro-os-plus/`; nothing else needs fetching.
 
-### 2. Building the Firmware (Raspberry Pi Pico, RP2040)
+### 2. Building the Firmware (WeAct RP2040 16 MB)
 
 From the project root directory:
 
 ```bash
-cmake -B build -G Ninja -DPICO_BOARD=pico
+export PICO_SDK_PATH=/path/to/pico-sdk
+cmake -B build -G Ninja
 ninja -C build
 ```
 
+`PICO_BOARD=weact_studio_rp2040_16mb` is selected in `CMakeLists.txt`, so no
+`-D` is required. Keep the SDK stdio UART enabled (`PICO_STDIO_UART`, the
+default): it configures UART0 on GP0/GP1 and holds nTRST high from boot. See
+`WEACT_CONFIGURATION_BUILD_AND_DIFFERENCES.md` section 8 for why this matters.
+
 The output binaries generated in `build/` are:
-- **`build/JTAGprobe_smp_pio_std.uf2`** &mdash; UF2 firmware file for flashing via USB bootloader.
-- **`build/JTAGprobe_smp_pio_std.elf`** &mdash; ELF binary with debug symbols.
+- **`build/JTAGprobe_smp_pio_std_weact.uf2`** &mdash; UF2 firmware file for flashing via USB bootloader.
+- **`build/JTAGprobe_smp_pio_std_weact.elf`** &mdash; ELF binary with debug symbols.
 
 The firmware is linked `copy_to_ram`: it runs entirely from SRAM, bypassing XIP flash latency.
 
@@ -297,10 +309,10 @@ The firmware is linked `copy_to_ram`: it runs entirely from SRAM, bypassing XIP 
 
 ## Flashing the Firmware
 
-1. **Hold the BOOTSEL button** on your Pico board.
-2. **Plug the board into your computer's USB port** while holding BOOTSEL (the device mounts as a mass-storage drive named `RPI-RP2`).
-3. **Copy `build/JTAGprobe_smp_pio_std.uf2`** to the drive.
-4. The Pico will automatically reboot and start running `JTAGprobe_smp_pio_std` with CMSIS-DAP v2, PIO hardware acceleration, and USB CDC UART on GPIO 4/5.
+1. **Hold the BOOTSEL button** on the WeAct board.
+2. **Plug the board into your computer's USB-C port** while holding BOOTSEL (the device mounts as a mass-storage drive named `RPI-RP2`).
+3. **Copy `build/JTAGprobe_smp_pio_std_weact.uf2`** to the drive.
+4. The board will automatically reboot and start running `JTAGprobe_smp_pio_std_weact` with CMSIS-DAP v2, PIO hardware acceleration, and USB CDC UART on GPIO 4/5.
 
 ---
 

@@ -736,6 +736,13 @@ __STATIC_INLINE void DAP_SETUP (void) {
 
   gpio_set_dir(PROBE_PIN_nRESET,false);
   gpio_put(PROBE_PIN_nRESET,true);
+  gpio_pull_up(PROBE_PIN_nRESET);
+
+  /* Release nTRST (high) from boot.  On the Pico build UART0 TX on GP0 does
+     this implicitly after DAP_SETUP(); doing it here keeps the target TAP out
+     of reset on boards whose stdio configuration leaves GP0 alone. */
+  gpio_put(PROBE_PIN_nTRST,true);
+  gpio_set_dir(PROBE_PIN_nTRST,true);
 
 
 }

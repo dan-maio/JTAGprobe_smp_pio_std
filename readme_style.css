@@ -2,7 +2,7 @@
     size: A4;
     margin: 18mm 16mm 18mm 16mm;
     @top-left {
-        content: "JTAGprobe_smp_pio Reference Manual";
+        content: "JTAGprobe_smp_pio_std_weact Reference Manual";
         font-family: "Liberation Sans", "DejaVu Sans", sans-serif;
         font-size: 7.5pt;
         color: #64748b;

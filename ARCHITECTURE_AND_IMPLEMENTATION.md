@@ -1,15 +1,19 @@
-# JTAGprobe_smp_pio_std — Architecture & Implementation
+# JTAGprobe_smp_pio_std_weact — Architecture & Implementation
 
-## CMSIS-DAP v2 JTAG/SWD probe on the Raspberry Pi Pico (RP2040), µOS++ III SMP, PIO-accelerated JTAG
+## CMSIS-DAP v2 JTAG/SWD probe on the RP2040 (WeAct RP2040 16 MB / Raspberry Pi Pico), µOS++ III SMP, PIO-accelerated JTAG
 
 This document describes how the firmware in this repository is configured
 and how it works, layer by layer: the board wiring, the build, the µOS++ III
 SMP kernel and its RP2040 port, the USB transport and the packet path between
 the two cores, the CMSIS-DAP command layer, and the PIO state machine that
 clocks JTAG. Every statement refers to the source as it is at commit
-`ad73e50`. Performance figures are the ones measured by the project and
-recorded in `README.md` and `PERFORMANCE_ANALYSIS_AND_OPTIMIZATION.md`;
-they were not re-measured for this document.
+`e17b7b0` plus the local WeAct changes in `CMakeLists.txt` and
+`include/DAP_config.h`. Board-specific configuration, build commands and the
+Pico-vs-WeAct differences are in
+`WEACT_CONFIGURATION_BUILD_AND_DIFFERENCES.md`. Performance figures are the
+ones measured by the project and recorded in `README.md` and
+`PERFORMANCE_ANALYSIS_AND_OPTIMIZATION.md`; they were not re-measured for
+this document.
 
 ---
 
@@ -34,8 +38,9 @@ they were not re-measured for this document.
 
 ## 1. Overview
 
-`JTAGprobe_smp_pio_std` turns a Raspberry Pi Pico into a CMSIS-DAP v2 debug
-probe with these design choices:
+`JTAGprobe_smp_pio_std_weact` turns an RP2040 board (WeAct RP2040 16 MB, or
+a Raspberry Pi Pico with the same left-header wiring) into a CMSIS-DAP v2
+debug probe with these design choices:
 
 | Aspect | Choice | Where |
 | :--- | :--- | :--- |
@@ -206,13 +211,18 @@ the pins' current levels before the function mux is switched.
 ```bash
 export PICO_SDK_PATH=/path/to/pico-sdk
 git submodule update --init          # CMSIS_6
-cmake -B build -G Ninja -DPICO_BOARD=pico
+cmake -B build -G Ninja              # PICO_BOARD from CMakeLists (WeAct 16 MB)
 ninja -C build
-# -> build/JTAGprobe_smp_pio_std.uf2 (BOOTSEL drag-and-drop), .elf (symbols)
+# -> build/JTAGprobe_smp_pio_std_weact.uf2 (BOOTSEL drag-and-drop), .elf (symbols)
 ```
 
-The current build is 64,796 bytes of text and 40,232 bytes of BSS
-(`arm-none-eabi-size`), all of it resident in the RP2040's 264 KB SRAM.
+Keep the SDK stdio UART enabled (`PICO_STDIO_UART`, the default): it
+configures UART0 on GP0/GP1 and holds nTRST high from boot. See
+`WEACT_CONFIGURATION_BUILD_AND_DIFFERENCES.md` section 8.
+
+The current build is 64,204 bytes of text and 40,260 bytes of BSS
+(`arm-none-eabi-size`), all of it resident in the RP2040's 264 KB SRAM; the
+UF2 is 120,320 bytes.
 
 ---
 
@@ -745,7 +755,8 @@ a Raspberry Pi Pico target over SWD at 15 MHz.
 
 ### 10.1 Status LED (`src/led.c`, `src/led.h`)
 
-The Pico's on-board LED (GP25, `PROBE_USB_CONNECTED_LED`) is **on all the
+The on-board LED (GP25 on both the Pico and the WeAct board,
+`PROBE_USB_CONNECTED_LED`) is **on all the
 time** and **blinks rapidly (10 Hz: 50 ms on, 50 ms off) while TCK/SWCLK is
 in use**.
 
@@ -806,7 +817,7 @@ What the numbers show:
 
 ### 12.1 Flashing
 
-Hold BOOTSEL, plug in, copy `build/JTAGprobe_smp_pio_std.uf2` to the
+Hold BOOTSEL, plug in, copy `build/JTAGprobe_smp_pio_std_weact.uf2` to the
 `RPI-RP2` drive.
 
 ### 12.2 OpenOCD (JTAG)
@@ -869,14 +880,25 @@ the commit does not identify the cause of that failure. The proper fix is to
 use spec bit positions in `DAP_SWJ_Pins()` while keeping the GPIO numbers in
 `PROBE_PIN_*`, then find out why SWD failed with that change. Until then,
 prefer `reset_config none` or a target-side software reset
-(e.g. `AIRCR.SYSRESETREQ`) with OpenOCD.
+(e.g. `AIRCR.SYSRESETREQ`) with OpenOCD. The WeAct tree keeps the GPIO-number
+mapping to match the working Pico build; see
+`WEACT_CONFIGURATION_BUILD_AND_DIFFERENCES.md` section 9.
 
 ### 13.2 nTRST is not host-controllable
 
 `PIN_nTRST_OUT()` is an empty stub and `PIN_nTRST_IN()` returns 0. GP0 is
-driven high by `pio_jtag_init()` when JTAG connects and floats (high-Z) in SWD
-mode, but no DAP command can pulse it. Use a TAP reset through TMS (five TCK
-cycles with TMS high), which OpenOCD does by default.
+driven high by `DAP_SETUP()` at boot and again by `pio_jtag_init()` when JTAG
+connects; it floats (high-Z) in SWD mode, but no DAP command can pulse it. Use
+a TAP reset through TMS (five TCK cycles with TMS high), which OpenOCD does by
+default.
+
+Because the host cannot drive nTRST, the probe must hold it high itself from
+boot. In the Pico build this happens through `board_init()`, which places
+UART0 TX on GP0 (UART0 TX idles high). The WeAct build therefore keeps the SDK
+stdio UART enabled and also drives GP0 high explicitly in `DAP_SETUP()`. Do
+not set `PICO_STDIO_UART OFF`: that is what caused the original WeAct
+"all ones" failure. See `WEACT_CONFIGURATION_BUILD_AND_DIFFERENCES.md`
+section 8.
 
 ### 13.3 Bit-bang timing assumes a 125 MHz system clock
 

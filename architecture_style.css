@@ -2,7 +2,7 @@
     size: A4;
     margin: 18mm 16mm 18mm 16mm;
     @top-left {
-        content: "JTAGprobe_smp_pio_std — Architecture & Implementation";
+        content: "JTAGprobe_smp_pio_std_weact — Architecture & Implementation";
         font-family: "Liberation Sans", "DejaVu Sans", sans-serif;
         font-size: 7.5pt;
         color: #64748b;
@@ -139,8 +139,6 @@ table {
     border-collapse: collapse;
     margin: 10pt 0;
     font-size: 8.3pt;
-    break-inside: avoid;
-    page-break-inside: avoid;
 }
 
 th {

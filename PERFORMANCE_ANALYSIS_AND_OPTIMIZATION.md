@@ -4,9 +4,11 @@
 **Author:** Antigravity AI & D.M.  
 **Date:** October 2026  
 **Target Repository:** `dan-maio/JTAGprobe_smp_pio` (upstream: `dst202/JTAGprobe`)  
-**Applicable Hardware:** Raspberry Pi Pico (RP2040) / Raspberry Pi Pico 2 (RP2350)
+**Applicable Hardware:** Raspberry Pi Pico (RP2040) / WeAct RP2040 Core Board (RP2040) / Raspberry Pi Pico 2 (RP2350)
 
 > **Note:** Sections 1–7 analyse and optimize the single-core FreeRTOS JTAGprobe (branch `jtagprobe-new`); JTAGprobe_smp carries all of those optimizations; JTAGprobe_smp_pio runs `DAP_JTAG_Sequence` on an RP2040 PIO state machine (the other JTAG commands still bit-bang on the CPU). Section 8 describes the µOS++ III SMP integration (RP2040 only) and section 9 the measured OpenOCD `load_image` times on a Raspberry Pi 4 B.
+
+> **WeAct tree note:** This is a performance study of the probe firmware lineage; its measurements were made on a Raspberry Pi Pico with the Pico build. The firmware in this directory is the same probe built for the WeAct RP2040 16 MB board, with the same PIO JTAG path and pin numbers. Board configuration and Pico-vs-WeAct differences are in `WEACT_CONFIGURATION_BUILD_AND_DIFFERENCES.md`.
 
 ---
 
@@ -487,9 +489,10 @@ The probe enumerates as a USB Composite Device with three distinct interfaces:
 - **Dynamic Line Coding:** Automatically tracks host terminal baud rate (e.g. 9600, 115200, 921600), parity, stop bits, and data bit configurations via `tud_cdc_line_coding_cb`.
 - **In JTAGprobe_smp** the three tasks are µOS++ threads with the same ordering (`os_thread_priority_high`, `_above_normal`, `_normal`); `UART` and `TUD` are pinned to core 0, `DAP` to core 1 (section 8).
 
-### 7.3 Full Pinout Reference
+### 7.3 Pinout Reference (JTAGprobe / JTAGprobe_smp / JTAGprobe_smp_pio)
 
-> **JTAGprobe_smp_pio_std** moves every signal to the Pico's pins 1–10
+> **JTAGprobe_smp_pio_std** (and this tree's **JTAGprobe_smp_pio_std_weact**)
+> moves every signal to the left header's pins 1–10
 > (GP0 nTRST, GP1 nRESET, GND, GP2 SWCLK/TCK, GP3 SWDIO/TMS, GP4 UART1 TX,
 > GP5 UART1 RX, GND, GP6 TDI, GP7 TDO); see its README. The table below, and the
 > UART pins in § 7.1–7.2, are those of JTAGprobe, JTAGprobe_smp and
